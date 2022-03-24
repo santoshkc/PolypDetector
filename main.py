@@ -37,7 +37,8 @@ import time
 
 if __name__ == "__main__":
 	print(list(categories.keys()))
-	path_prefix = r"C:/Users/Dev2/Desktop/Jupyter Notebook/PolypsSet/PolypsSet"
+	path_prefix = r"../PolypsSet"
+	#path_prefix = r"C:/Users/Dev2/Desktop/Jupyter Notebook/PolypsSet/PolypsSet"
 
 	def detection_test():
 		polyp_detector = PolypDetector("polyp_train", "polyp_validation")

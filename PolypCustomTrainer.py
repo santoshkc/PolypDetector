@@ -23,7 +23,8 @@ class PolypCustomTrainer(DefaultTrainer):
             build_detection_test_loader(
                 self.cfg,
                 self.cfg.DATASETS.TEST[0],
-                DatasetMapper(self.cfg,True)
+                DatasetMapper(self.cfg,True),
+                num_workers=4
             )
         ))
         return hooks          

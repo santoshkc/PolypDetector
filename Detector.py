@@ -32,14 +32,14 @@ class PolypDetector:
 
 		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
 
-		# minimum image size for the train set
-		self.cfg.INPUT.MIN_SIZE_TRAIN = (256,)
-		# maximum image size for the train set
-		self.cfg.INPUT.MAX_SIZE_TRAIN = 256
-		#  minimum image size for the test set
-		self.cfg.INPUT.MIN_SIZE_TEST = 256
-		#  maximum image size for the test set
-		self.cfg.INPUT.MAX_SIZE_TEST = 512
+		# # minimum image size for the train set
+		# self.cfg.INPUT.MIN_SIZE_TRAIN = (256,)
+		# # maximum image size for the train set
+		# self.cfg.INPUT.MAX_SIZE_TRAIN = 256
+		# #  minimum image size for the test set
+		# self.cfg.INPUT.MIN_SIZE_TEST = 256
+		# #  maximum image size for the test set
+		# self.cfg.INPUT.MAX_SIZE_TEST = 512
 
 		self.cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
 		self.cfg.DATASETS.TRAIN = (training_dataset,)
