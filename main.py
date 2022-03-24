@@ -40,18 +40,19 @@ if __name__ == "__main__":
 	path_prefix = r"C:/Users/Dev2/Desktop/Jupyter Notebook/PolypsSet/PolypsSet"
 
 	def detection_test():
-		polyp_detector = PolypDetector("polyp_train", "polyp_test")
+		polyp_detector = PolypDetector("polyp_train", "polyp_validation")
 
-		should_train = False
+		should_train = True
+		
 		if should_train == True:
-			polyp_detector.train("train_data.txt", path_prefix)
+			polyp_detector.train("train_data.txt", path_prefix,"val_data_final.txt", path_prefix)
 
-		should_infer = True
+		should_infer = False
 		if should_infer == True:
 			output_folder = f'./result_{time.time()}'
 			if os.path.exists(output_folder) == False:
 				os.mkdir(output_folder)
-			polyp_detector.infer("val_data.txt", path_prefix,output_folder)
+			polyp_detector.infer("polyp_test", "val_data.txt", path_prefix, output_folder)
 
 		should_evaluate = False
 		if should_evaluate == True:

@@ -42,12 +42,18 @@ def parse_data(input_source_file: str, pathPrefix = "./polypsSet" ):
     return dataset_dicts
 #parse_data()
 
-def get_polyp_metadata(meta_type, input_source: str, path_prefix):
 
-    if meta_type not in DatasetCatalog.keys():
-        DatasetCatalog.register(meta_type, lambda d= meta_type: parse_data(input_source, path_prefix) )
+def register_dataset(data_set, input_source: str, path_prefix):
+    if data_set not in DatasetCatalog.keys():
+        DatasetCatalog.register(data_set, lambda d= data_set: parse_data(input_source, path_prefix) )
+        MetadataCatalog.get(data_set).set(thing_classes=list(categories.keys()))
+
+def get_polyp_metadata(meta_type):
+
+    # if meta_type not in DatasetCatalog.keys():
+    #     DatasetCatalog.register(meta_type, lambda d= meta_type: parse_data(input_source, path_prefix) )
     
-    MetadataCatalog.get(meta_type).set(thing_classes=list(categories.keys()))
+    # MetadataCatalog.get(meta_type).set(thing_classes=list(categories.keys()))
 
     polyp_metadata = MetadataCatalog.get(meta_type)
     #print(polyp_metadata)

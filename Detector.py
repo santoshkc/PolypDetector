@@ -4,6 +4,8 @@ from detectron2.config import get_cfg
 import detectron2
 from detectron2.utils.logger import setup_logger
 from matplotlib import pyplot as plt
+
+from PolypCustomTrainer import PolypCustomTrainer
 setup_logger()
 
 
@@ -20,7 +22,7 @@ from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.structures import BoxMode
 
-from PolypDataLoader import get_polyp_metadata, parse_data
+from PolypDataLoader import get_polyp_metadata, parse_data, register_dataset
 
 class PolypDetector:
 	def __init__(self, training_dataset, testing_dataset) -> None:
@@ -42,6 +44,9 @@ class PolypDetector:
 		self.cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
 		self.cfg.DATASETS.TRAIN = (training_dataset,)
 		self.cfg.DATASETS.TEST = (testing_dataset,)
+		
+		self.cfg.TEST.EVAL_PERIOD = 400
+		
 		self.cfg.DATALOADER.NUM_WORKERS = 4
 		self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml")  # Let training initialize from model zoo
 		self.cfg.SOLVER.IMS_PER_BATCH = 4
@@ -54,14 +59,18 @@ class PolypDetector:
 
 		os.makedirs(self.cfg.OUTPUT_DIR, exist_ok=True)
 
-	def train(self, training_source: str, path_prefix: str):
-		self.polyp_metadata = get_polyp_metadata(self.cfg.DATASETS.TRAIN[0], training_source, path_prefix )
+	def train(self, training_source: str, path_prefix: str, validation_source: str, validation_path_prefix: str):
+
+		register_dataset(self.cfg.DATASETS.TRAIN[0], training_source, path_prefix)
+		register_dataset(self.cfg.DATASETS.TEST[0], validation_source, validation_path_prefix)
+
+		#self.polyp_metadata = get_polyp_metadata(self.cfg.DATASETS.TRAIN[0], training_source, path_prefix )
 		#self.cfg.DATASETS.TRAIN = ("polyp_train",)
-		self.trainer = DefaultTrainer(self.cfg) 
+		self.trainer = PolypCustomTrainer(self.cfg) 
 		self.trainer.resume_or_load(resume=False)
 		self.trainer.train()
 
-	def infer(self, training_source: str, path_prefix: str,image_output_folder: str):
+	def infer(self, data_set: str, training_source: str, path_prefix: str,image_output_folder: str):
 		# Inference should use the config with parameters that are used in training
 		# cfg now already contains everything we've set previously. We changed it a little bit for inference:
 
@@ -71,8 +80,9 @@ class PolypDetector:
 
 		from detectron2.utils.visualizer import ColorMode
 
-		if self.polyp_metadata is None:
-			self.polyp_metadata = get_polyp_metadata(self.cfg.DATASETS.TEST[0],training_source, path_prefix)
+		register_dataset(data_set, training_source, path_prefix)
+
+		polyp_metadata = get_polyp_metadata(data_set,training_source, path_prefix)
 		
 		dataset_dicts = parse_data(training_source, path_prefix)
 
@@ -81,7 +91,7 @@ class PolypDetector:
 			image_id = d["image_id"]
 			outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
 			v = Visualizer(im[:, :, ::-1],
-						metadata=self.polyp_metadata, 
+						metadata=polyp_metadata, 
 						scale=0.5, 
 						instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels. This option is only available for segmentation models
 			)
@@ -93,8 +103,8 @@ class PolypDetector:
 			#cv2.imwrite("abc.jpg", out.get_image()[:, :, ::-1])
 
 	def evaluate(self,training_souce:str, path_prefix: str, output_dir ,data_set):
-		from detectron2.evaluation import COCOEvaluator, inference_on_dataset
-		from detectron2.data import build_detection_test_loader
+		from detectron2.evaluation import PascalVOCDetectionEvaluator,COCOEvaluator, inference_on_dataset
+		from detectron2.data import build_detection_test_loader, build_detection_train_loader
 
 		self.cfg.MODEL.WEIGHTS = os.path.join(self.cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
 		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # set a custom testing threshold
@@ -104,6 +114,6 @@ class PolypDetector:
 			self.polyp_metadata = get_polyp_metadata(data_set,training_souce, path_prefix)
 
 		evaluator = COCOEvaluator(data_set, output_dir=output_dir)
-		val_loader = build_detection_test_loader(self.cfg, data_set)
+		val_loader = build_detection_test_loader(self.cfg, data_set,num_workers=4)
 		print(inference_on_dataset(predictor.model, val_loader, evaluator))
 		# another equivalent way to evaluate the model is to use `trainer.test`
