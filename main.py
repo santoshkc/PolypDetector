@@ -53,7 +53,8 @@ if __name__ == "__main__":
 			output_folder = f'./result_{time.time()}'
 			if os.path.exists(output_folder) == False:
 				os.mkdir(output_folder)
-			polyp_detector.infer("polyp_test", "val_data.txt", path_prefix, output_folder)
+			#polyp_detector.infer("polyp_train", "train_data.txt", path_prefix, output_folder)
+			polyp_detector.infer("polyp_validation", "val_data_final.txt", path_prefix, output_folder)
 
 		should_evaluate = False
 		if should_evaluate == True:
@@ -63,25 +64,3 @@ if __name__ == "__main__":
 			polyp_detector.evaluate("train_data.txt", path_prefix,new_output_dir,data_set="polyp_train")
 
 	detection_test()
-
-	# polyp_metadata = get_polyp_metadata()
-	# dataset_dicts = parse_data()
-
-	# for d in random.sample(dataset_dicts, 3):
-	#     img = cv2.imread(d["file_name"])
-	#     visualizer = Visualizer(img[:, :, ::-1], metadata=polyp_metadata, scale=0.5)
-	#     out = visualizer.draw_dataset_dict(d)
-	#     print(">>",d,pathlib.Path(d["file_name"]).stem)
-	#     cv2.imwrite(f'{pathlib.Path(d["file_name"]).stem}.jpg', out.get_image())
-
-	#extract_required_data()
-
-
-	# print(torch.cuda.is_available())
-
-	# np_array = np.array([1,3,2])
-	# print(torch.from_numpy(np_array))
-
-	# detector = Detector()
-
-	# detector.onImage(r"C:\Users\Dev2\Desktop\PUL076MSDSA016.jpg")

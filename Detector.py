@@ -82,7 +82,7 @@ class PolypDetector:
 
 		register_dataset(data_set, training_source, path_prefix)
 
-		polyp_metadata = get_polyp_metadata(data_set,training_source, path_prefix)
+		polyp_metadata = get_polyp_metadata(data_set)
 		
 		dataset_dicts = parse_data(training_source, path_prefix)
 
@@ -92,8 +92,7 @@ class PolypDetector:
 			outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
 			v = Visualizer(im[:, :, ::-1],
 						metadata=polyp_metadata, 
-						scale=0.5, 
-						instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels. This option is only available for segmentation models
+						scale=1, 
 			)
 			out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
 
