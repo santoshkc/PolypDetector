@@ -2,7 +2,7 @@ import json
 import matplotlib.pyplot as plt
 
 #experiment_folder = './output'
-experiment_folder = r"C:\Users\Dev2\Desktop\Jupyter Notebook\detectron2_facebook\polyp-detector\output_train_validation"
+experiment_folder = r"C:\Users\Dev2\Desktop\Jupyter Notebook\detectron2_facebook\polyp-detector\output_colab_validation_4"
 
 
 def build_training_validation_plot(experiment_folder: str, output_image_name: str):
@@ -25,7 +25,8 @@ def build_training_validation_plot(experiment_folder: str, output_image_name: st
         [x['iteration'] for x in experiment_metrics if 'validation_loss' in x], 
         [x['validation_loss'] for x in experiment_metrics if 'validation_loss' in x])
     plt.legend(['total_loss', 'validation_loss'], loc='upper left')
+    plt.xlabel("epochs")
     plt.savefig(f"{experiment_folder}/{output_image_name}")
     #plt.show()
 
-build_training_validation_plot(experiment_folder,"val_plot.jpg")
+build_training_validation_plot(experiment_folder,"val_plot_colab.jpg")
