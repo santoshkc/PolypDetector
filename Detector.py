@@ -25,12 +25,13 @@ from detectron2.structures import BoxMode
 from PolypDataLoader import get_polyp_metadata, parse_data, register_dataset
 
 class PolypDetector:
-	def __init__(self, training_dataset, testing_dataset) -> None:
+	def __init__(self, training_dataset, testing_dataset,default_output_dir = "./output") -> None:
 		self.polyp_metadata = None
 		self.cfg = get_cfg()
 		self.cfg.MODEL.DEVICE = "cuda"
 
-		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
+		#Overlap threshold for an RoI to be considered background (if < IOU_THRESHOLD)
+		self.cfg.MODEL.ROI_HEADS.IOU_THRESHOLDS = [0.5]
 
 		# # minimum image size for the train set
 		# self.cfg.INPUT.MIN_SIZE_TRAIN = (256,)
@@ -44,8 +45,10 @@ class PolypDetector:
 		self.cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
 		self.cfg.DATASETS.TRAIN = (training_dataset,)
 		self.cfg.DATASETS.TEST = (testing_dataset,)
-		
-		self.cfg.TEST.EVAL_PERIOD = 400
+
+		# Save a checkpoint after every this number of iterations
+		# run validation every x steps		
+		self.cfg.SOLVER.CHECKPOINT_PERIOD = self.cfg.TEST.EVAL_PERIOD = 400
 		
 		self.cfg.DATALOADER.NUM_WORKERS = 4
 		self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml")  # Let training initialize from model zoo
@@ -57,7 +60,26 @@ class PolypDetector:
 		self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2  # only has one class (ballon). (see https://detectron2.readthedocs.io/tutorials/datasets.html#update-the-config-for-new-datasets)
 		# NOTE: this config means the number of classes, but a few popular unofficial tutorials incorrect uses num_classes+1 here.
 
+		# Target fraction of RoI minibatch that is labeled foreground (i.e. class > 0)
+		#self.cfg.MODEL.ROI_HEADS.POSITIVE_FRACTION = 0.25
+
+		self.cfg.OUTPUT_DIR = default_output_dir
+		
 		os.makedirs(self.cfg.OUTPUT_DIR, exist_ok=True)
+
+		# Minimum score threshold (assuming scores in a [0, 1] range); a value chosen to
+		# balance obtaining high recall with not having too many low precision
+		# detections that will slow down inference post processing steps (like NMS)
+		# A default threshold of 0.0 increases AP by ~0.2-0.3 but significantly slows down
+		# inference.
+		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.2
+		# Overlap threshold used for non-maximum suppression (suppress boxes with
+		# IoU >= this threshold)
+		self.cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST = 0.2
+		# If True, augment proposals with ground-truth boxes before sampling proposals to
+		# train ROI heads.
+		#self.cfg.MODEL.ROI_HEADS.PROPOSAL_APPEND_GT = True
+
 
 	def train(self, training_source: str, path_prefix: str, validation_source: str, validation_path_prefix: str):
 
@@ -75,7 +97,7 @@ class PolypDetector:
 		# cfg now already contains everything we've set previously. We changed it a little bit for inference:
 
 		self.cfg.MODEL.WEIGHTS = os.path.join(self.cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
-		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # set a custom testing threshold
+		#self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # set a custom testing threshold
 		predictor = DefaultPredictor(self.cfg)
 
 		from detectron2.utils.visualizer import ColorMode
@@ -101,18 +123,17 @@ class PolypDetector:
 
 			#cv2.imwrite("abc.jpg", out.get_image()[:, :, ::-1])
 
-	def evaluate(self,training_souce:str, path_prefix: str, output_dir ,data_set):
+	def evaluate(self,training_source:str, path_prefix: str, output_dir ,data_set):
 		from detectron2.evaluation import PascalVOCDetectionEvaluator,COCOEvaluator, inference_on_dataset
 		from detectron2.data import build_detection_test_loader, build_detection_train_loader
 
 		self.cfg.MODEL.WEIGHTS = os.path.join(self.cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
-		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # set a custom testing threshold
+		#self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # set a custom testing threshold
 		predictor = DefaultPredictor(self.cfg)
 
-		if self.polyp_metadata is None:
-			self.polyp_metadata = get_polyp_metadata(data_set,training_souce, path_prefix)
+		register_dataset(data_set, training_source, path_prefix)
 
 		evaluator = COCOEvaluator(data_set, output_dir=output_dir)
-		val_loader = build_detection_test_loader(self.cfg, data_set,num_workers=4)
+		val_loader = build_detection_test_loader(self.cfg, data_set,num_workers=4,batch_size=2)
 		print(inference_on_dataset(predictor.model, val_loader, evaluator))
 		# another equivalent way to evaluate the model is to use `trainer.test`
