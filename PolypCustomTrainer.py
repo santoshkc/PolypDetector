@@ -5,6 +5,7 @@ from detectron2.config import get_cfg
 from detectron2.data import build_detection_test_loader, build_detection_train_loader, DatasetMapper
 
 from detectron2.evaluation import COCOEvaluator
+from CustomMapper import polyp_training_mapper
 
 from LossEvalHook import LossEvalHook
 from TensorBoardLossWriter import CustomTensorboardXWriter
@@ -12,6 +13,11 @@ from TensorBoardLossWriter import CustomTensorboardXWriter
 from detectron2.utils.events import CommonMetricPrinter, JSONWriter
 
 class PolypCustomTrainer(DefaultTrainer):
+
+    # @classmethod
+    # def build_train_loader(cls, cfg):
+    #     return build_detection_train_loader(cfg, mapper=polyp_training_mapper)
+
     @classmethod
     def build_evaluator(cls, cfg, dataset_name, output_folder=None):
         if output_folder is None:
@@ -27,8 +33,8 @@ class PolypCustomTrainer(DefaultTrainer):
                 self.cfg,
                 self.cfg.DATASETS.TEST[0],
                 DatasetMapper(self.cfg,True),
-                num_workers=4,
-                batch_size=4
+                num_workers=2,
+                #batch_size=4
             )
         ))
         # swap the order of PeriodicWriter and ValidationLoss

@@ -41,7 +41,9 @@ if __name__ == "__main__":
 	#path_prefix = r"C:/Users/Dev2/Desktop/Jupyter Notebook/PolypsSet/PolypsSet"
 
 	def detection_test():
-		polyp_detector = PolypDetector("polyp_train", "polyp_validation")
+		#output_folder = f'./result_{time.time()}'
+		output_folder = './result_1648384510.6090004'
+		polyp_detector = PolypDetector("polyp_train", "polyp_validation", default_output_dir=output_folder)
 
 		should_train = True
 		

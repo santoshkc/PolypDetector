@@ -31,30 +31,38 @@ class PolypDetector:
 		self.cfg.MODEL.DEVICE = "cuda"
 
 		#Overlap threshold for an RoI to be considered background (if < IOU_THRESHOLD)
-		self.cfg.MODEL.ROI_HEADS.IOU_THRESHOLDS = [0.5]
+		self.cfg.MODEL.ROI_HEADS.IOU_THRESHOLDS = [0.6]
 
-		# # minimum image size for the train set
-		# self.cfg.INPUT.MIN_SIZE_TRAIN = (256,)
-		# # maximum image size for the train set
-		# self.cfg.INPUT.MAX_SIZE_TRAIN = 256
-		# #  minimum image size for the test set
-		# self.cfg.INPUT.MIN_SIZE_TEST = 256
-		# #  maximum image size for the test set
-		# self.cfg.INPUT.MAX_SIZE_TEST = 512
+		# minimum image size for the train set
+		self.cfg.INPUT.MIN_SIZE_TRAIN = (512,)
+		# maximum image size for the train set
+		self.cfg.INPUT.MAX_SIZE_TRAIN = 512
+		#  minimum image size for the test set
+		self.cfg.INPUT.MIN_SIZE_TEST = 512
+		#  maximum image size for the test set
+		self.cfg.INPUT.MAX_SIZE_TEST = 512
 
 		self.cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
 		self.cfg.DATASETS.TRAIN = (training_dataset,)
 		self.cfg.DATASETS.TEST = (testing_dataset,)
 
+		self.cfg.SOLVER.IMS_PER_BATCH = 8
+		num_epochs = 10
+
+		total_images = 27048
+		one_epoch = int(total_images / self.cfg.SOLVER.IMS_PER_BATCH)
+		max_iter = one_epoch * num_epochs
+
+		self.cfg.SOLVER.MAX_ITER = max_iter    # 300 iterations seems good enough for this toy dataset; you will need to train longer for a practical dataset
+
 		# Save a checkpoint after every this number of iterations
 		# run validation every x steps		
-		self.cfg.SOLVER.CHECKPOINT_PERIOD = self.cfg.TEST.EVAL_PERIOD = 400
+		self.cfg.SOLVER.CHECKPOINT_PERIOD = one_epoch
+		self.cfg.TEST.EVAL_PERIOD = 400
 		
 		self.cfg.DATALOADER.NUM_WORKERS = 4
 		self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml")  # Let training initialize from model zoo
-		self.cfg.SOLVER.IMS_PER_BATCH = 4
 		self.cfg.SOLVER.BASE_LR = 0.00025  # pick a good LR
-		self.cfg.SOLVER.MAX_ITER = 2000    # 300 iterations seems good enough for this toy dataset; you will need to train longer for a practical dataset
 		self.cfg.SOLVER.STEPS = []        # do not decay learning rate
 		self.cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 128   # faster, and good enough for this toy dataset (default: 512)
 		self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2  # only has one class (ballon). (see https://detectron2.readthedocs.io/tutorials/datasets.html#update-the-config-for-new-datasets)
@@ -72,10 +80,10 @@ class PolypDetector:
 		# detections that will slow down inference post processing steps (like NMS)
 		# A default threshold of 0.0 increases AP by ~0.2-0.3 but significantly slows down
 		# inference.
-		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.2
+		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.15
 		# Overlap threshold used for non-maximum suppression (suppress boxes with
 		# IoU >= this threshold)
-		self.cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST = 0.2
+		self.cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST = 0.1
 		# If True, augment proposals with ground-truth boxes before sampling proposals to
 		# train ROI heads.
 		#self.cfg.MODEL.ROI_HEADS.PROPOSAL_APPEND_GT = True
@@ -89,7 +97,7 @@ class PolypDetector:
 		#self.polyp_metadata = get_polyp_metadata(self.cfg.DATASETS.TRAIN[0], training_source, path_prefix )
 		#self.cfg.DATASETS.TRAIN = ("polyp_train",)
 		self.trainer = PolypCustomTrainer(self.cfg) 
-		self.trainer.resume_or_load(resume=False)
+		self.trainer.resume_or_load(resume=True)
 		self.trainer.train()
 
 	def infer(self, data_set: str, training_source: str, path_prefix: str,image_output_folder: str):
