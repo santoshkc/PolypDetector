@@ -57,8 +57,8 @@ class PolypDetector:
 
 		# Save a checkpoint after every this number of iterations
 		# run validation every x steps		
-		self.cfg.SOLVER.CHECKPOINT_PERIOD = one_epoch
-		self.cfg.TEST.EVAL_PERIOD = 400
+		self.cfg.SOLVER.CHECKPOINT_PERIOD = int(one_epoch/4)
+		self.cfg.TEST.EVAL_PERIOD = int(one_epoch/4)
 		
 		self.cfg.DATALOADER.NUM_WORKERS = 4
 		self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml")  # Let training initialize from model zoo
