@@ -22,6 +22,8 @@ from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.structures import BoxMode
 
+from detectron2.data import detection_utils as utils
+
 from PolypDataLoader import get_polyp_metadata, parse_data, register_dataset
 
 class PolypDetector:
@@ -104,6 +106,11 @@ class PolypDetector:
 		# Inference should use the config with parameters that are used in training
 		# cfg now already contains everything we've set previously. We changed it a little bit for inference:
 
+		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.05
+		# Overlap threshold used for non-maximum suppression (suppress boxes with
+		# IoU >= this threshold)
+		self.cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST = 0.05
+
 		self.cfg.MODEL.WEIGHTS = os.path.join(self.cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
 		#self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # set a custom testing threshold
 		predictor = DefaultPredictor(self.cfg)
@@ -117,17 +124,23 @@ class PolypDetector:
 		dataset_dicts = parse_data(training_source, path_prefix)
 
 		for d in dataset_dicts:    
-			im = cv2.imread(d["file_name"])
+			im = utils.read_image(d["file_name"], format="RGB")
+			#im = cv2.imread(d["file_name"])
 			image_id = d["image_id"]
 			outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
 			v = Visualizer(im[:, :, ::-1],
 						metadata=polyp_metadata, 
-						scale=1, 
+						scale=1,
+						instance_mode= ColorMode.IMAGE
 			)
-			out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
 
-			#cv2_imshow(out.get_image()[:, :, ::-1])
-			cv2.imwrite(f'{image_output_folder}/{image_id}_{pathlib.Path(d["file_name"]).stem}.jpg', out.get_image())
+			predictions = outputs["instances"].to("cpu")
+			#print(predictions)
+			if predictions.has("pred_boxes") is not None:
+				out = v.draw_instance_predictions(predictions)
+
+				#cv2_imshow(out.get_image()[:, :, ::-1])
+				cv2.imwrite(f'{image_output_folder}/{image_id}_{pathlib.Path(d["file_name"]).stem}.jpg', out.get_image())
 
 			#cv2.imwrite("abc.jpg", out.get_image()[:, :, ::-1])
 
