@@ -1,3 +1,4 @@
+import torch
 import pathlib
 from detectron2.engine import DefaultTrainer
 from detectron2.config import get_cfg
@@ -18,7 +19,7 @@ import os, json, cv2, random
 from detectron2 import model_zoo
 from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
-from detectron2.utils.visualizer import Visualizer
+from detectron2.utils.visualizer import Visualizer,_create_text_labels
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.structures import BoxMode
 
@@ -102,14 +103,14 @@ class PolypDetector:
 		self.trainer.resume_or_load(resume=True)
 		self.trainer.train()
 
-	def infer(self, data_set: str, training_source: str, path_prefix: str,image_output_folder: str):
+	def infer(self, data_set: str, training_source: str, path_prefix: str,image_output_folder: str, score_threshold: float = 0.5):
 		# Inference should use the config with parameters that are used in training
 		# cfg now already contains everything we've set previously. We changed it a little bit for inference:
 
 		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.05
 		# Overlap threshold used for non-maximum suppression (suppress boxes with
 		# IoU >= this threshold)
-		self.cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST = 0.05
+		self.cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST = 0.01
 
 		self.cfg.MODEL.WEIGHTS = os.path.join(self.cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
 		#self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # set a custom testing threshold
@@ -135,12 +136,28 @@ class PolypDetector:
 			)
 
 			predictions = outputs["instances"].to("cpu")
-			#print(predictions)
+			#print(type(predictions),predictions)
 			if predictions.has("pred_boxes") is not None:
-				out = v.draw_instance_predictions(predictions)
 
-				#cv2_imshow(out.get_image()[:, :, ::-1])
-				cv2.imwrite(f'{image_output_folder}/{image_id}_{pathlib.Path(d["file_name"]).stem}.jpg', out.get_image())
+				np_scores = predictions.scores.numpy()
+				np_pred_boxes = predictions.pred_boxes.tensor.detach().numpy()
+				np_pred_classes = predictions.pred_classes.numpy()
+
+				total_items = range(np_scores.shape[0])
+				final_box_array = np.array([np_pred_boxes[i][:] for i in total_items if np_scores[i] >= score_threshold ])
+
+				desired_boxes = torch.from_numpy(final_box_array)
+				desired_scores = np.array([np_scores[i] for i in total_items if np_scores[i] >= score_threshold ])
+				desired_classes = np.array([np_pred_classes[i] for i in total_items if np_scores[i] >= score_threshold ])
+
+				labels = _create_text_labels(desired_classes, desired_scores, polyp_metadata.get("thing_classes", None))
+
+				if(len(desired_boxes) > 0):
+					#out = v.draw_instance_predictions(predictions)
+					out = v.overlay_instances(boxes=desired_boxes,labels= labels )
+
+					#cv2_imshow(out.get_image()[:, :, ::-1])
+					cv2.imwrite(f'{image_output_folder}/{image_id}_{pathlib.Path(d["file_name"]).stem}.jpg', out.get_image())
 
 			#cv2.imwrite("abc.jpg", out.get_image()[:, :, ::-1])
 
