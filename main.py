@@ -42,7 +42,8 @@ if __name__ == "__main__":
 
 	def detection_test():
 		#output_folder = f'./result_{time.time()}'
-		output_folder = './result_1648384510.6090004'
+		#output_folder = './result_1648384510.6090004'
+		output_folder = '/content/drive/MyDrive/detectron_train_2'
 		polyp_detector = PolypDetector("polyp_train", "polyp_validation", default_output_dir=output_folder)
 
 		should_train = True

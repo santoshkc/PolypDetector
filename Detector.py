@@ -46,7 +46,7 @@ class PolypDetector:
 		self.cfg.DATASETS.TRAIN = (training_dataset,)
 		self.cfg.DATASETS.TEST = (testing_dataset,)
 
-		self.cfg.SOLVER.IMS_PER_BATCH = 8
+		self.cfg.SOLVER.IMS_PER_BATCH = 32
 		num_epochs = 10
 
 		total_images = 27048
