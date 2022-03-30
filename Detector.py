@@ -28,7 +28,7 @@ from detectron2.data import detection_utils as utils
 from PolypDataLoader import get_polyp_metadata, parse_data, register_dataset
 
 class PolypDetector:
-	def __init__(self, training_dataset, testing_dataset,default_output_dir = "./output") -> None:
+	def __init__(self, training_dataset, testing_dataset,default_output_dir) -> None:
 		self.polyp_metadata = None
 		self.cfg = get_cfg()
 		self.cfg.MODEL.DEVICE = "cuda"
@@ -92,7 +92,7 @@ class PolypDetector:
 		#self.cfg.MODEL.ROI_HEADS.PROPOSAL_APPEND_GT = True
 
 
-	def train(self, training_source: str, path_prefix: str, validation_source: str, validation_path_prefix: str):
+	def train(self, training_source: str, path_prefix: str, validation_source: str, validation_path_prefix: str, resume:bool=False):
 
 		register_dataset(self.cfg.DATASETS.TRAIN[0], training_source, path_prefix)
 		register_dataset(self.cfg.DATASETS.TEST[0], validation_source, validation_path_prefix)
@@ -100,10 +100,16 @@ class PolypDetector:
 		#self.polyp_metadata = get_polyp_metadata(self.cfg.DATASETS.TRAIN[0], training_source, path_prefix )
 		#self.cfg.DATASETS.TRAIN = ("polyp_train",)
 		self.trainer = PolypCustomTrainer(self.cfg) 
-		self.trainer.resume_or_load(resume=True)
+		self.trainer.resume_or_load(resume)
 		self.trainer.train()
 
-	def infer(self, data_set: str, training_source: str, path_prefix: str,image_output_folder: str, score_threshold: float = 0.5):
+	def infer(self, data_set: str, training_source: str, path_prefix: str,image_output_folder: str, score_threshold: float = 0.1,model_weight_file="model_final.pth"):
+		self.cfg.INPUT.MIN_SIZE_TEST = 0
+		#maximum image size for the test set
+		self.cfg.INPUT.MAX_SIZE_TEST = 0
+
+		self.cfg.MODEL.WEIGHTS = os.path.join(self.cfg.OUTPUT_DIR, model_weight_file)  # path to the model we just trained
+		
 		# Inference should use the config with parameters that are used in training
 		# cfg now already contains everything we've set previously. We changed it a little bit for inference:
 
@@ -112,7 +118,6 @@ class PolypDetector:
 		# IoU >= this threshold)
 		self.cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST = 0.01
 
-		self.cfg.MODEL.WEIGHTS = os.path.join(self.cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
 		#self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # set a custom testing threshold
 		predictor = DefaultPredictor(self.cfg)
 
@@ -156,8 +161,18 @@ class PolypDetector:
 					#out = v.draw_instance_predictions(predictions)
 					out = v.overlay_instances(boxes=desired_boxes,labels= labels )
 
+					prediction_result = out.get_image()
+					#print(prediction_result.shape)
+					annotation = d["annotations"][0]
+					box_coordinates = annotation['bbox']
+					#print("Result", annotation, box_coordinates,d["annotations"])
+
+					xmin, ymin, xmax, ymax = tuple(box_coordinates)
+
+					cv2.rectangle(prediction_result,(int(xmin),int(ymin)), (int(xmax), int(ymax)), (0,255,0),2)
+
 					#cv2_imshow(out.get_image()[:, :, ::-1])
-					cv2.imwrite(f'{image_output_folder}/{image_id}_{pathlib.Path(d["file_name"]).stem}.jpg', out.get_image())
+					cv2.imwrite(f'{image_output_folder}/{image_id}_{pathlib.Path(d["file_name"]).stem}.jpg', prediction_result)
 
 			#cv2.imwrite("abc.jpg", out.get_image()[:, :, ::-1])
 

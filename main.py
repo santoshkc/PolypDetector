@@ -1,3 +1,4 @@
+from email.policy import default
 import random
 
 import cv2
@@ -38,65 +39,93 @@ import time
 import argparse
 
 def get_parser():
-    parser = argparse.ArgumentParser(description="Polyp configs")
-    parser.add_argument("--train", action="store_true", help="use for training")
-    parser.add_argument("--infer", action="store_true", help="infer.")
+	parser = argparse.ArgumentParser(description="Polyp configs")
+	parser.add_argument("--train", action="store_true", help="use for training")
+	parser.add_argument("--infer", action="store_true", help="use for inference.")
+	parser.add_argument("--evaluate", action="store_true", help="use for evaluation.")
+	
+	parser.add_argument("--unique-run", action="store_true", help="clean run for train/infer/evaluate.")
     
-    parser.add_argument(
-        "--output-dir",
-        help="Save training weights and logs"
-        "If not given, will show output in an OpenCV window.",
-    )
+	parser.add_argument(
+		"--weights-output-dir",
+		default="./detectron_output",
+		help="Place to save training weights and logs"
+	)
 
-    parser.add_argument(
-        "--confidence-threshold",
-        type=float,
-        default=0.5,
-        help="Minimum score for instance predictions to be shown",
-    )
-    parser.add_argument(
-        "--opts",
-        help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=[],
-        nargs=argparse.REMAINDER,
-    )
-    return parser
+	parser.add_argument(
+		"--model-weight-file",
+		default="model_final.pth",
+		help="Model name to be used for training/resuming weights"
+	)
+
+	parser.add_argument(
+		"--detection-output-dir",
+		default="./detection_result",
+		help="Place to store image when generated during inference"
+	)
+
+	parser.add_argument(
+		"--path-prefix",
+		default="../PolypsSet",
+		help="source image prefix to be used for training samples"
+	)
+	return parser
+
 
 def parse_arguments():
 	pass
 
 if __name__ == "__main__":
 	print(list(categories.keys()))
-	path_prefix = r"../PolypsSet"
-	#path_prefix = r"C:/Users/Dev2/Desktop/Jupyter Notebook/PolypsSet/PolypsSet"
+
+	args = get_parser().parse_args()
+
+	#print("Before: ", args)
+
+	if args.path_prefix is None:
+		args.path_prefix = r"../PolypsSet"
+
+	if args.unique_run is True:
+		args.weights_output_dir = f"{args.weights_output_dir}_{time.time()}"
+
+	print(f"Training Weights/logs folder:  {args.weights_output_dir}")
+
+	if args.unique_run is True:
+		args.detection_output_dir = f"{args.detection_output_dir}_{time.time()}"
+
+	print(f"Detection result folder:  {args.detection_output_dir}")
+
+	if args.model_weight_file is None:
+		args.model_weight_file = "model_final.pth"
+	
+	#args.path_prefix = r"C:/Users/Dev2/Desktop/Jupyter Notebook/PolypsSet/PolypsSet"
+	print("After: ", args)
 
 	def detection_test():
-		#output_folder = f'./result_{time.time()}'
-		#output_folder = './result_1648384510.6090004'
 		#output_folder = '/content/drive/MyDrive/detectron_train_2'
 		#output_folder = './detectron_train_pcampus'
-		output_folder = '/kaggle/working/detectron_train_pcampus'
-		polyp_detector = PolypDetector("polyp_train", "polyp_validation", default_output_dir=output_folder)
+		#output_folder = '/kaggle/working/detectron_train_pcampus'
+		polyp_detector = PolypDetector("polyp_train", "polyp_validation", 
+			default_output_dir=args.weights_output_dir
+			)
 
-		should_train = True
-		
-		if should_train == True:
-			polyp_detector.train("train_data.txt", path_prefix,"val_data_final.txt", path_prefix)
+		if args.train == True:
+			polyp_detector.train("train_data.txt", args.path_prefix,"val_data_final.txt", args.path_prefix,
+			resume = not args.unique_run
+			)
 
-		should_infer = False
-		if should_infer == True:
-			output_folder = f'./result_{time.time()}'
-			#output_folder = './detectron_train_pcampus'
-			if os.path.exists(output_folder) == False:
-				os.mkdir(output_folder)
-			#polyp_detector.infer("polyp_train", "train_data.txt", path_prefix, output_folder)
-			polyp_detector.infer("polyp_validation", "val_data_final.txt", path_prefix, output_folder)
+		if args.infer == True:
+			if os.path.exists(args.detection_output_dir) == False:
+				os.mkdir(args.detection_output_dir)
+			#polyp_detector.infer("polyp_train", "train_data.txt", args.path_prefix, args.detection_output_dir)
+			polyp_detector.infer("polyp_validation", "val_data_final.txt", args.path_prefix, 
+			args.detection_output_dir,
+			model_weight_file=args.model_weight_file)
 
-		should_evaluate = False
-		if should_evaluate == True:
+		if args.evaluate == True:
 			new_output_dir = f"./output_{time.time()}"
 			if os.path.exists(new_output_dir) == False:
 				os.mkdir(new_output_dir)
-			polyp_detector.evaluate("train_data.txt", path_prefix,new_output_dir,data_set="polyp_train")
+			polyp_detector.evaluate("train_data.txt", args.path_prefix,new_output_dir,data_set="polyp_train")
 
 	detection_test()
