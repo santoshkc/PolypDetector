@@ -19,6 +19,18 @@ class PolypCustomTrainer(DefaultTrainer):
     #     return build_detection_train_loader(cfg, mapper=polyp_training_mapper)
 
     @classmethod
+    def build_test_loader(cls, cfg, dataset_name):
+        """
+        Returns:
+            iterable
+
+        It now calls :func:`detectron2.data.build_detection_test_loader`.
+        Overwrite it if you'd like a different data loader.
+        """
+        return build_detection_test_loader(cfg, dataset_name,num_workers=2,
+            batch_size=cfg.SOLVER.IMS_PER_BATCH)
+
+    @classmethod
     def build_evaluator(cls, cfg, dataset_name, output_folder=None):
         if output_folder is None:
             output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
@@ -26,6 +38,7 @@ class PolypCustomTrainer(DefaultTrainer):
 
     def build_hooks(self):
         hooks = super().build_hooks()
+        print(f"Batch size: {self.cfg.SOLVER.IMS_PER_BATCH}" )
         hooks.insert(-1,LossEvalHook(
             self.cfg.TEST.EVAL_PERIOD,
             self.model,
@@ -34,7 +47,7 @@ class PolypCustomTrainer(DefaultTrainer):
                 self.cfg.DATASETS.TEST[0],
                 DatasetMapper(self.cfg,True),
                 num_workers=2,
-                #batch_size=4
+                batch_size=self.cfg.SOLVER.IMS_PER_BATCH
             )
         ))
         # swap the order of PeriodicWriter and ValidationLoss

@@ -28,7 +28,20 @@ from detectron2.data import detection_utils as utils
 from PolypDataLoader import get_polyp_metadata, parse_data, register_dataset
 
 class PolypDetector:
-	def __init__(self, training_dataset, testing_dataset,default_output_dir) -> None:
+	def __init__(self, training_dataset, testing_dataset,
+			default_output_dir,
+			checkpoint_per_epoch:int,
+			validation_per_epoch:int,
+
+			min_train_image_size: int = 512,
+			max_train_image_size: int = 512,
+			min_test_image_size: int = 512,
+			max_test_image_size: int = 512,
+			total_epoch = 5,
+			image_count_per_batch = 32,
+			total_image_samples: int = 0) -> None:
+		
+		
 		self.polyp_metadata = None
 		self.cfg = get_cfg()
 		self.cfg.MODEL.DEVICE = "cuda"
@@ -37,22 +50,22 @@ class PolypDetector:
 		self.cfg.MODEL.ROI_HEADS.IOU_THRESHOLDS = [0.6]
 
 		# minimum image size for the train set
-		self.cfg.INPUT.MIN_SIZE_TRAIN = (512,)
+		self.cfg.INPUT.MIN_SIZE_TRAIN = (min_train_image_size,)
 		# maximum image size for the train set
-		self.cfg.INPUT.MAX_SIZE_TRAIN = 512
+		self.cfg.INPUT.MAX_SIZE_TRAIN = max_train_image_size
 		#  minimum image size for the test set
-		self.cfg.INPUT.MIN_SIZE_TEST = 512
+		self.cfg.INPUT.MIN_SIZE_TEST = min_test_image_size
 		#  maximum image size for the test set
-		self.cfg.INPUT.MAX_SIZE_TEST = 512
+		self.cfg.INPUT.MAX_SIZE_TEST = max_test_image_size
 
 		self.cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
 		self.cfg.DATASETS.TRAIN = (training_dataset,)
 		self.cfg.DATASETS.TEST = (testing_dataset,)
 
-		self.cfg.SOLVER.IMS_PER_BATCH = 32
-		num_epochs = 10
+		self.cfg.SOLVER.IMS_PER_BATCH = image_count_per_batch
+		num_epochs = total_epoch
 
-		total_images = 27048
+		total_images = total_image_samples
 		one_epoch = int(total_images / self.cfg.SOLVER.IMS_PER_BATCH)
 		max_iter = one_epoch * num_epochs
 
@@ -60,8 +73,8 @@ class PolypDetector:
 
 		# Save a checkpoint after every this number of iterations
 		# run validation every x steps		
-		self.cfg.SOLVER.CHECKPOINT_PERIOD = int(one_epoch/4)
-		self.cfg.TEST.EVAL_PERIOD = int(one_epoch/2)
+		self.cfg.SOLVER.CHECKPOINT_PERIOD = int(one_epoch/checkpoint_per_epoch)
+		self.cfg.TEST.EVAL_PERIOD = int(one_epoch/validation_per_epoch)
 		
 		self.cfg.DATALOADER.NUM_WORKERS = 4
 		self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml")  # Let training initialize from model zoo
