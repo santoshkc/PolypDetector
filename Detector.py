@@ -176,17 +176,21 @@ class PolypDetector:
 
 			#cv2.imwrite("abc.jpg", out.get_image()[:, :, ::-1])
 
-	def evaluate(self,training_source:str, path_prefix: str, output_dir ,data_set):
+	def evaluate(self,training_source:str, path_prefix: str, output_dir ,data_set,model_weight_file):
 		from detectron2.evaluation import PascalVOCDetectionEvaluator,COCOEvaluator, inference_on_dataset
 		from detectron2.data import build_detection_test_loader, build_detection_train_loader
 
-		self.cfg.MODEL.WEIGHTS = os.path.join(self.cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
+		self.cfg.INPUT.MIN_SIZE_TEST = 256
+		#  maximum image size for the test set
+		self.cfg.INPUT.MAX_SIZE_TEST = 256
+
+		self.cfg.MODEL.WEIGHTS = os.path.join(self.cfg.OUTPUT_DIR, model_weight_file)  # path to the model we just trained
 		#self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # set a custom testing threshold
 		predictor = DefaultPredictor(self.cfg)
 
 		register_dataset(data_set, training_source, path_prefix)
 
 		evaluator = COCOEvaluator(data_set, output_dir=output_dir)
-		val_loader = build_detection_test_loader(self.cfg, data_set,num_workers=4,batch_size=2)
+		val_loader = build_detection_test_loader(self.cfg, data_set,num_workers=2,batch_size=6)
 		print(inference_on_dataset(predictor.model, val_loader, evaluator))
 		# another equivalent way to evaluate the model is to use `trainer.test`

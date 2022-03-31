@@ -120,12 +120,15 @@ if __name__ == "__main__":
 			#polyp_detector.infer("polyp_train", "train_data.txt", args.path_prefix, args.detection_output_dir)
 			polyp_detector.infer("polyp_validation", "val_data_final.txt", args.path_prefix, 
 			args.detection_output_dir,
-			model_weight_file=args.model_weight_file)
+			model_weight_file=args.model_weight_file,
+			)
 
 		if args.evaluate == True:
 			new_output_dir = f"./output_{time.time()}"
+			#new_output_dir = "output_1648726312.2160532"
 			if os.path.exists(new_output_dir) == False:
 				os.mkdir(new_output_dir)
-			polyp_detector.evaluate("train_data.txt", args.path_prefix,new_output_dir,data_set="polyp_train")
+			polyp_detector.evaluate("train_data.txt", args.path_prefix,new_output_dir,data_set="polyp_train",
+			model_weight_file=args.model_weight_file,)
 
 	detection_test()
