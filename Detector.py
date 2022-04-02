@@ -48,9 +48,9 @@ class PolypDetector:
 
 		self.cfg.MODEL.RPN.IOU_THRESHOLDS = [0.3, 0.7]
 		self.cfg.MODEL.RPN.IOU_LABELS = [0, -1, 1]
+		self.cfg.MODEL.RPN.NMS_THRESH = 0.7
 
 		#Overlap threshold for an RoI to be considered background (if < IOU_THRESHOLD)
-		self.cfg.MODEL.ROI_HEADS.IOU_THRESHOLDS = [0.6]
 		
 
 		# minimum image size for the train set
