@@ -16,7 +16,9 @@ class PolypCustomTrainer(DefaultTrainer):
 
     # @classmethod
     # def build_train_loader(cls, cfg):
-    #     return build_detection_train_loader(cfg, mapper=polyp_training_mapper)
+    #     return build_detection_train_loader(cfg, mapper=polyp_training_mapper,
+    #     num_workers=1,
+    #     total_batch_size=1)
 
     @classmethod
     def build_test_loader(cls, cfg, dataset_name):

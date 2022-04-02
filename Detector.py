@@ -46,8 +46,12 @@ class PolypDetector:
 		self.cfg = get_cfg()
 		self.cfg.MODEL.DEVICE = "cuda"
 
+		self.cfg.MODEL.RPN.IOU_THRESHOLDS = [0.3, 0.7]
+		self.cfg.MODEL.RPN.IOU_LABELS = [0, -1, 1]
+
 		#Overlap threshold for an RoI to be considered background (if < IOU_THRESHOLD)
 		self.cfg.MODEL.ROI_HEADS.IOU_THRESHOLDS = [0.6]
+		
 
 		# minimum image size for the train set
 		self.cfg.INPUT.MIN_SIZE_TRAIN = (min_train_image_size,)
@@ -96,7 +100,7 @@ class PolypDetector:
 		# detections that will slow down inference post processing steps (like NMS)
 		# A default threshold of 0.0 increases AP by ~0.2-0.3 but significantly slows down
 		# inference.
-		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.15
+		self.cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.05
 		# Overlap threshold used for non-maximum suppression (suppress boxes with
 		# IoU >= this threshold)
 		self.cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST = 0.1
@@ -143,11 +147,13 @@ class PolypDetector:
 		dataset_dicts = parse_data(training_source, path_prefix)
 
 		for d in dataset_dicts:    
-			im = utils.read_image(d["file_name"], format="RGB")
+			im = utils.read_image(d["file_name"], format="BGR")
 			#im = cv2.imread(d["file_name"])
 			image_id = d["image_id"]
 			outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
-			v = Visualizer(im[:, :, ::-1],
+			v = Visualizer(
+						im,
+						#im[:, :, ::-1],
 						metadata=polyp_metadata, 
 						scale=1,
 						instance_mode= ColorMode.IMAGE

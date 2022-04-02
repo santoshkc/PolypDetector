@@ -1,0 +1,38 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Detectron2 Run",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--path-prefix",
+                "C:/Users/Dev2/Desktop/Jupyter Notebook/PolypsSet/PolypsSet",
+                "--weights-output-dir",
+                "./detectron_train_pulchowk",
+                "--detection-output-dir",
+                "./detection_dump",
+                "--detection-evaluation-dir",
+                "./detection_evaluation_result",
+                "--model-weight-file",
+                "model_final.pth",
+                "--checkpoint-per-epoch", "10",
+                "--validation-per-epoch", "10",
+                "--min-train-image-size", "256",
+                "--max-train-image-size", "256",
+                "--min-test-image-size",  "256",
+                "--max-test-image-size",  "256",
+                "--total-image-samples", "4000",
+                "--image-count-per-batch", "4",
+                "--epoch", "5",
+                "--evaluate",
+            ],
+        }        
+    ]
+}
